@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
@@ -11,7 +10,6 @@ const NoteDetailPage = () => {
   const [saving, setSaving] = useState(false);
 
   const navigate = useNavigate();
-
   const { id } = useParams();
 
   useEffect(() => {
@@ -22,13 +20,14 @@ const NoteDetailPage = () => {
       } catch (error) {
         console.log("Error in fetching note", error);
         toast.error("Failed to fetch the note");
+        navigate("/"); // Redirect to home if note not found
       } finally {
         setLoading(false);
       }
     };
 
     fetchNote();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
@@ -44,8 +43,8 @@ const NoteDetailPage = () => {
   };
 
   const handleSave = async () => {
-    if (!note.title.trim() || !note.content.trim()) {
-      toast.error("Please add a title or content");
+    if (!note?.title?.trim() || !note?.content?.trim()) {
+      toast.error("Please add a title and content");
       return;
     }
 
@@ -54,7 +53,6 @@ const NoteDetailPage = () => {
     try {
       await api.put(`/notes/${id}`, note);
       toast.success("Note updated successfully");
-      navigate("/");
     } catch (error) {
       console.log("Error saving the note:", error);
       toast.error("Failed to update note");
@@ -67,6 +65,21 @@ const NoteDetailPage = () => {
     return (
       <div className="min-h-screen bg-base-200 flex items-center justify-center">
         <LoaderIcon className="animate-spin size-10" />
+      </div>
+    );
+  }
+
+  // Handle null note after loading
+  if (!note) {
+    return (
+      <div className="min-h-screen bg-base-200 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Note not found</h2>
+          <Link to="/" className="btn btn-primary">
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Back to Notes
+          </Link>
+        </div>
       </div>
     );
   }
@@ -109,12 +122,18 @@ const NoteDetailPage = () => {
                   placeholder="Write your note here..."
                   className="textarea textarea-bordered h-32"
                   value={note.content}
-                  onChange={(e) => setNote({ ...note, content: e.target.value })}
+                  onChange={(e) =>
+                    setNote({ ...note, content: e.target.value })
+                  }
                 />
               </div>
 
               <div className="card-actions justify-end">
-                <button className="btn btn-primary" disabled={saving} onClick={handleSave}>
+                <button
+                  className="btn btn-primary"
+                  disabled={saving}
+                  onClick={handleSave}
+                >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
@@ -125,4 +144,5 @@ const NoteDetailPage = () => {
     </div>
   );
 };
+
 export default NoteDetailPage;

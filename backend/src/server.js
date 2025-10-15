@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path"
 
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
@@ -10,14 +11,16 @@ dotenv.config();
 
 const app = express()
 const PORT =  process.env.PORT || 5001
-
+const __dirname = path.resolve()
 
 // middleware
-app.use(
-  cors({
-    origin:"http://localhost:5173",
-  }
-));//it should be above rateLimiter middleware
+if (process.env.NODE_ENV !== "production") {
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+    })
+  );
+}//it should be above rateLimiter middleware
 app.use(express.json()); //add it before routes,so that we can access the contents of post request(this one gives access to req.body before we send response,other req.body will give undefined,this middleware will parse JSON bodies:req.body)
 app.use(rateLimiter);
 
@@ -28,7 +31,6 @@ app.use(rateLimiter);
 //     next();
 // });
 
-app.use("/api/notes",notesRoutes);
 // app.use("/api/product",productRoutes);
 // app.use("/api/posts",productRoutes);
 // app.use("/api/payments",productRoutes);
@@ -51,11 +53,18 @@ app.use("/api/notes",notesRoutes);
 // app.delete("/api/notes/:id",(req,res) => {
 //     res.status(200).json({message:"Note deleted successfully!"});
 // });
+app.use("/api/notes",notesRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist"))); //server the react assets as static application
+
+  app.get("*", (req, res) => { //in production go server.js and serve react application which is under index.html
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));//if you visit any route other that api render the react api
+  });
+}
 
 connectDB().then(() => {
     app.listen(PORT, () => {
       console.log("Server started on PORT:",PORT);
     });
 });
-
-//mongodb+srv://vinishkrishna05_db_user:YaVtJX2iD6MnXHg7@cluster0.wccuh14.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
